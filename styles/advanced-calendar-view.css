@@ -79,6 +79,26 @@
     transform: translateY(-0.5px);
 }
 
+.fc-focus-block-event .fc-event-main-frame,
+.fc-focus-block-event .fc-event-main {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start !important;
+    align-items: stretch;
+    height: 100%;
+    overflow: hidden;
+}
+
+.fc-focus-block-event .fc-event-title-container,
+.fc-focus-block-event .fc-event-time {
+    flex: 0 0 auto !important;
+}
+
+.fc-focus-block-event .focus-block-event__tasks {
+    margin-top: 2px;
+    overflow: hidden;
+}
+
 /* Time Entry Events - Recorded time with distinctive dashed border */
 .fc-event[data-event-type="timeEntry"] {
     opacity: 0.9;
@@ -174,6 +194,35 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
+    align-items: start;
+}
+
+.timeblock-time-container .setting-item {
+    border-top: none;
+    padding-top: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.timeblock-time-container .setting-item-info {
+    margin-bottom: 0.35rem;
+}
+
+.timeblock-time-container .setting-item-control {
+    align-self: stretch;
+}
+
+.timeblock-time-container input[type="time"] {
+    width: 100%;
+    min-height: 34px;
+}
+
+.focus-block-time-note {
+    margin-top: 0.35rem;
+    margin-bottom: 0.75rem;
+    font-size: var(--tn-font-size-sm);
+    color: var(--text-muted);
 }
 
 .timeblock-modal-buttons {

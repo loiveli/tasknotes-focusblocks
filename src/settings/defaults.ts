@@ -170,6 +170,11 @@ export const DEFAULT_CALENDAR_VIEW_SETTINGS: CalendarViewSettings = {
 	defaultShowTimeblocks: true,
 	defaultTimeblockColor: "#6366f1",
 	timeblockAttachmentSearchOrder: "name-asc",
+	// Focus Block settings
+	enableFocusBlocks: false,
+	defaultShowFocusBlocks: true,
+	defaultFocusBlockColor: "#0ea5e9",
+	showTasksOnAllFocusBlocks: true,
 	// Calendar behavior
 	nowIndicator: true,
 	selectMirror: true,

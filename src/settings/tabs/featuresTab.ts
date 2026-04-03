@@ -667,6 +667,69 @@ export function renderFeaturesTab(
 		}
 	);
 
+	// Focus Blocks Section
+	createSettingGroup(
+		container,
+		{
+			heading: "Focus Blocks",
+			description: "Separate recurring focus-time blocks that surface top tasks and matching overdue tasks.",
+		},
+		(group) => {
+			group.addSetting((setting) =>
+				configureToggleSetting(setting, {
+					name: "Enable Focus Blocks",
+					desc: "Turn on the Focus Block feature in the calendar.",
+					getValue: () => plugin.settings.calendarViewSettings.enableFocusBlocks,
+					setValue: async (value: boolean) => {
+						plugin.settings.calendarViewSettings.enableFocusBlocks = value;
+						save();
+						renderFeaturesTab(container, plugin, save);
+					},
+				})
+			);
+
+			if (plugin.settings.calendarViewSettings.enableFocusBlocks) {
+				group.addSetting((setting) =>
+					configureToggleSetting(setting, {
+						name: "Show Focus Blocks by default",
+						desc: "Display Focus Blocks in calendar views when the feature is enabled.",
+						getValue: () => plugin.settings.calendarViewSettings.defaultShowFocusBlocks,
+						setValue: async (value: boolean) => {
+							plugin.settings.calendarViewSettings.defaultShowFocusBlocks = value;
+							save();
+						},
+					})
+				);
+
+				group.addSetting((setting) => {
+					setting
+						.setName("Default Focus Block color")
+						.setDesc("Default calendar color for newly created Focus Blocks.")
+						.addText((text) => {
+							text.inputEl.type = "color";
+							text.setValue(plugin.settings.calendarViewSettings.defaultFocusBlockColor);
+							text.onChange(async (value) => {
+								plugin.settings.calendarViewSettings.defaultFocusBlockColor = value;
+								await save();
+							});
+						});
+				});
+
+				group.addSetting((setting) =>
+					configureToggleSetting(setting, {
+						name: "Show tasks on all Focus Blocks",
+						desc: "When off, task previews are only shown on the currently active Focus Block in the calendar. Opening the block still shows all tasks in the modal.",
+						getValue: () => plugin.settings.calendarViewSettings.showTasksOnAllFocusBlocks,
+						setValue: async (value: boolean) => {
+							plugin.settings.calendarViewSettings.showTasksOnAllFocusBlocks = value;
+							await save();
+						},
+					})
+				);
+			}
+		}
+	);
+
 	// Debug Logging Section
 	createSettingGroup(
 		container,
