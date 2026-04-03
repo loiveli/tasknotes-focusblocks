@@ -87,9 +87,35 @@ export class RecurrenceContextMenu {
 		}
 	}
 
+	private getReferenceDate(): Date {
+		const existingDtstartMatch = this.options.currentValue?.match(/DTSTART:(\d{8}(?:T\d{6}Z?)?)/);
+		const existingDate = existingDtstartMatch?.[1] ? this.parseDateValue(existingDtstartMatch[1]) : null;
+		const scheduledDate = this.parseDateValue(this.options.scheduledDate);
+		return existingDate || scheduledDate || new Date();
+	}
+
+	private parseDateValue(value?: string): Date | null {
+		if (!value) {
+			return null;
+		}
+
+		if (/^\d{8}(?:T\d{6}Z?)?$/.test(value)) {
+			const year = parseInt(value.slice(0, 4), 10);
+			const month = parseInt(value.slice(4, 6), 10) - 1;
+			const day = parseInt(value.slice(6, 8), 10);
+			const hour = value.includes("T") ? parseInt(value.slice(9, 11), 10) || 0 : 0;
+			const minute = value.includes("T") ? parseInt(value.slice(11, 13), 10) || 0 : 0;
+			const second = value.includes("T") ? parseInt(value.slice(13, 15), 10) || 0 : 0;
+			return new Date(year, month, day, hour, minute, second, 0);
+		}
+
+		const parsed = new Date(value);
+		return Number.isNaN(parsed.getTime()) ? null : parsed;
+	}
+
 	private getRecurrenceOptions(): RecurrenceOption[] {
 		const options: RecurrenceOption[] = [];
-		const today = new Date();
+		const today = this.getReferenceDate();
 
 		// Get current day/month/year context for smart defaults
 		const dayNames = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
@@ -295,8 +321,7 @@ class CustomRecurrenceModal extends Modal {
 
 	private parseCurrentValue(): void {
 		if (!this.currentValue) {
-			// Set default DTSTART to today
-			this.dtstart = this.formatTodayForInput();
+			this.dtstart = this.getDefaultDtstartForInput();
 			
 			// Check if we should preserve time from scheduled date
 			if (this.scheduledDate && this.scheduledDate.includes("T")) {
@@ -391,6 +416,17 @@ class CustomRecurrenceModal extends Modal {
 					break;
 			}
 		}
+	}
+
+	private getDefaultDtstartForInput(): string {
+		if (this.scheduledDate) {
+			const scheduledMatch = this.scheduledDate.match(/^(\d{4}-\d{2}-\d{2})/);
+			if (scheduledMatch) {
+				return scheduledMatch[1];
+			}
+		}
+
+		return this.formatTodayForInput();
 	}
 
 	private formatTodayForInput(): string {

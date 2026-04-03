@@ -36,6 +36,16 @@ import { createTaskCard } from "../ui/TaskCard";
 import { createICSEventCard } from "../ui/ICSCard";
 import { createPropertyEventCard } from "../ui/PropertyEventCard";
 import { createTimeBlockCard } from "../ui/TimeBlockCard";
+import { createFocusBlockCard } from "../focus-blocks/FocusBlockCard";
+import {
+	handleFocusBlockCreation,
+	handleFocusBlockDrop,
+	handleFocusBlockResize,
+	applyFocusBlockStyling,
+	enhanceFocusBlockEventPreview,
+	generateFocusBlockTooltip,
+	showFocusBlockInfoModal,
+} from "../focus-blocks/focusBlockCore";
 import { TaskContextMenu } from "../components/TaskContextMenu";
 import { ICSEventContextMenu } from "../components/ICSEventContextMenu";
 import { formatDateForStorage, hasTimeComponent, parseDateToLocal, parseDateToUTC } from "../utils/dateUtils";
@@ -140,6 +150,7 @@ export class CalendarView extends BasesViewBase {
 
 	// Debounce timer for saving view type to config
 	private _saveViewTypeTimer: ReturnType<typeof setTimeout> | null = null;
+	private _focusBlockPreviewRefreshTimer: number | null = null;
 
 	// Flag to indicate config changed and calendar needs recreation
 	private _configChangedNeedsRecreate = false;
@@ -154,6 +165,7 @@ export class CalendarView extends BasesViewBase {
 		showRecurring: boolean;
 		showTimeEntries: boolean;
 		showTimeblocks: boolean;
+		showFocusBlocks: boolean;
 		showPropertyBasedEvents: boolean;
 
 		// Date navigation
@@ -216,6 +228,7 @@ export class CalendarView extends BasesViewBase {
 			showRecurring: calendarSettings.defaultShowRecurring,
 			showTimeEntries: calendarSettings.defaultShowTimeEntries,
 			showTimeblocks: calendarSettings.defaultShowTimeblocks,
+			showFocusBlocks: calendarSettings.defaultShowFocusBlocks,
 			showPropertyBasedEvents: true,
 
 			// Date navigation
@@ -496,6 +509,7 @@ export class CalendarView extends BasesViewBase {
 			this.viewOptions.showRecurring = this.config.get('showRecurring') ?? this.viewOptions.showRecurring;
 			this.viewOptions.showTimeEntries = this.config.get('showTimeEntries') ?? this.viewOptions.showTimeEntries;
 			this.viewOptions.showTimeblocks = this.config.get('showTimeblocks') ?? this.viewOptions.showTimeblocks;
+			this.viewOptions.showFocusBlocks = this.config.get('showFocusBlocks') ?? this.viewOptions.showFocusBlocks;
 			this.viewOptions.showPropertyBasedEvents = this.config.get('showPropertyBasedEvents') ?? this.viewOptions.showPropertyBasedEvents;
 
 			// ICS calendar toggles
@@ -667,6 +681,7 @@ export class CalendarView extends BasesViewBase {
 					)
 						? this.calendar.getDate()
 						: null;
+					this.clearFocusBlockPreviewRefreshTimer();
 					this.calendar.destroy();
 					this.calendar = null;
 				}
@@ -706,6 +721,7 @@ export class CalendarView extends BasesViewBase {
 			} else {
 				await this.updateCalendarEvents(taskNotes);
 			}
+			this.scheduleFocusBlockPreviewRefresh();
 		} catch (error: any) {
 			console.error("[TaskNotes][CalendarView] Error rendering:", error);
 			this.renderError(error);
@@ -1089,6 +1105,7 @@ export class CalendarView extends BasesViewBase {
 			showRecurring: this.viewOptions.showRecurring,
 			showTimeEntries: this.viewOptions.showTimeEntries,
 			showTimeblocks: this.viewOptions.showTimeblocks,
+			showFocusBlocks: this.viewOptions.showFocusBlocks,
 			showICSEvents: false, // ICS handled separately
 			visibleStart: fetchInfo.start,
 			visibleEnd: fetchInfo.end,
@@ -1267,6 +1284,41 @@ export class CalendarView extends BasesViewBase {
 		this.calendar.refetchEvents();
 	}
 
+	private clearFocusBlockPreviewRefreshTimer(): void {
+		if (this._focusBlockPreviewRefreshTimer) {
+			clearTimeout(this._focusBlockPreviewRefreshTimer);
+			this._focusBlockPreviewRefreshTimer = null;
+		}
+	}
+
+	private scheduleFocusBlockPreviewRefresh(): void {
+		this.clearFocusBlockPreviewRefreshTimer();
+
+		if (
+			!this.calendar ||
+			!this.rootElement?.isConnected ||
+			!this.plugin.settings.calendarViewSettings.enableFocusBlocks ||
+			!this.viewOptions.showFocusBlocks ||
+			this.plugin.settings.calendarViewSettings.showTasksOnAllFocusBlocks !== false
+		) {
+			return;
+		}
+
+		const win = this.containerEl.ownerDocument.defaultView || window;
+		const now = new Date();
+		const delayMs = Math.max(250, (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 50);
+
+		this._focusBlockPreviewRefreshTimer = win.setTimeout(() => {
+			this._focusBlockPreviewRefreshTimer = null;
+			if (!this.calendar || !this.rootElement?.isConnected) {
+				return;
+			}
+
+			this.calendar.refetchEvents();
+			this.scheduleFocusBlockPreviewRefresh();
+		}, delayMs);
+	}
+
 	/**
 	 * Refresh calendar with fresh data from Obsidian's metadata cache.
 	 * Use this when task data has changed and calendar needs to reflect updates immediately.
@@ -1294,13 +1346,21 @@ export class CalendarView extends BasesViewBase {
 	}
 
 	private async handleEventClick(info: any): Promise<void> {
-		const { taskInfo, timeblock, eventType, filePath, icsEvent, subscriptionName } = info.event.extendedProps || {};
+		const { taskInfo, timeblock, focusBlock, eventType, filePath, icsEvent, subscriptionName } = info.event.extendedProps || {};
 		const jsEvent = info.jsEvent;
 
 		// Handle timeblock click
 		if (eventType === "timeblock" && timeblock) {
 			const originalDate = format(info.event.start, "yyyy-MM-dd");
 			showTimeblockInfoModal(timeblock, info.event.start, originalDate, this.plugin, () => this.expectImmediateUpdate());
+			return;
+		}
+
+		if (eventType === "focusblock" && focusBlock) {
+			showFocusBlockInfoModal(focusBlock, info.event.start, this.plugin, () => {
+				this.expectImmediateUpdate();
+				void this.refreshCalendarWithFreshData();
+			});
 			return;
 		}
 
@@ -1346,6 +1406,7 @@ export class CalendarView extends BasesViewBase {
 		const {
 			taskInfo,
 			timeblock,
+			focusBlock,
 			eventType,
 			isRecurringInstance,
 			isNextScheduledOccurrence,
@@ -1358,6 +1419,11 @@ export class CalendarView extends BasesViewBase {
 		if (eventType === "timeblock") {
 			const originalDate = format(info.oldEvent.start, "yyyy-MM-dd");
 			await handleTimeblockDrop(info, timeblock, originalDate, this.plugin);
+			return;
+		}
+
+		if (eventType === "focusblock" && focusBlock) {
+			await handleFocusBlockDrop(info, focusBlock, this.plugin);
 			return;
 		}
 
@@ -1606,7 +1672,7 @@ export class CalendarView extends BasesViewBase {
 			return;
 		}
 
-		const { taskInfo, timeblock, eventType, filePath, timeEntryIndex, icsEvent } = info.event.extendedProps;
+		const { taskInfo, timeblock, focusBlock, eventType, filePath, timeEntryIndex, icsEvent } = info.event.extendedProps;
 
 		// Handle time entry resize
 		if (eventType === "timeEntry") {
@@ -1655,6 +1721,11 @@ export class CalendarView extends BasesViewBase {
 		if (eventType === "timeblock") {
 			const originalDate = format(info.event.start, "yyyy-MM-dd");
 			await handleTimeblockResize(info, timeblock, originalDate, this.plugin);
+			return;
+		}
+
+		if (eventType === "focusblock" && focusBlock) {
+			await handleFocusBlockResize(info, focusBlock, this.plugin);
 			return;
 		}
 
@@ -1821,6 +1892,20 @@ export class CalendarView extends BasesViewBase {
 			});
 		}
 
+		if (this.plugin.settings.calendarViewSettings.enableFocusBlocks) {
+			menu.addItem((item) => {
+				item.setTitle("Create Focus Block")
+					.setIcon("target")
+					.onClick(async () => {
+						this.expectImmediateUpdate();
+						await handleFocusBlockCreation(info.start, info.end, info.allDay, this.plugin, () => {
+							this.expectImmediateUpdate();
+							void this.refreshCalendarWithFreshData();
+						});
+					});
+			});
+		}
+
 		menu.addItem((item) => {
 			item.setTitle("Create time entry")
 				.setIcon("play")
@@ -1873,7 +1958,7 @@ export class CalendarView extends BasesViewBase {
 	private handleEventDidMount(arg: any): void {
 		if (!arg?.event?.extendedProps) return;
 
-		const { taskInfo, timeblock, icsEvent, eventType, basesEntry } = arg.event.extendedProps;
+		const { taskInfo, timeblock, focusBlock, icsEvent, eventType, basesEntry } = arg.event.extendedProps;
 
 		// Add calendar icon to provider-managed calendar events in grid views
 		if (icsEvent && arg.view.type !== 'listWeek') {
@@ -1982,6 +2067,12 @@ export class CalendarView extends BasesViewBase {
 					originalDate: originalDate,
 				});
 			}
+			// Render Focus Block events with FocusBlockCard
+			else if (eventType === 'focusblock' && focusBlock) {
+				cardElement = createFocusBlockCard(focusBlock, this.plugin, {
+					eventDate: arg.event.start,
+				});
+			}
 
 			// Replace the event element content with the card
 			if (cardElement) {
@@ -2012,6 +2103,17 @@ export class CalendarView extends BasesViewBase {
 			const tooltipText = generateTimeblockTooltip(timeblock);
 			setTooltip(arg.el, tooltipText, { placement: "top" });
 
+			return;
+		}
+
+		if (eventType === "focusblock" && focusBlock) {
+			applyFocusBlockStyling(arg.el, focusBlock);
+			if (arg.event.setProp) {
+				arg.event.setProp("editable", true);
+			}
+			const tooltipText = generateFocusBlockTooltip(focusBlock);
+			setTooltip(arg.el, tooltipText, { placement: "top" });
+			void enhanceFocusBlockEventPreview(arg.el, focusBlock, this.plugin, arg.event.start);
 			return;
 		}
 
@@ -2201,6 +2303,7 @@ export class CalendarView extends BasesViewBase {
 		}
 
 		// Component.register() calls will be automatically cleaned up
+		this.clearFocusBlockPreviewRefreshTimer();
 
 		if (this.calendar) {
 			this.calendar.destroy();
