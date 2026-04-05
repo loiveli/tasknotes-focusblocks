@@ -31,6 +31,64 @@ export class FocusBlockCreationModal extends Modal {
 		super(app);
 	}
 
+	private setupTimeInput(input: HTMLInputElement): void {
+		input.type = "hidden";
+		input.addClass("timeblock-time-input");
+	}
+
+	private createTimeField(
+		container: HTMLElement,
+		label: string,
+		value: string,
+		onChange: () => void
+	): HTMLInputElement {
+		const normalizedValue = /^\d{2}:\d{2}$/.test(value) ? value : "09:00";
+		const [initialHour, initialMinute] = normalizedValue.split(":");
+
+		const field = container.createDiv({ cls: "timeblock-time-field" });
+		field.createEl("label", { text: label, cls: "timeblock-time-label" });
+
+		const input = field.createEl("input");
+		this.setupTimeInput(input);
+		input.value = normalizedValue;
+
+		const picker = field.createDiv({ cls: "timeblock-time-picker" });
+		const hourSelect = picker.createEl("select", {
+			cls: "timeblock-time-segment timeblock-time-segment--hour",
+		});
+		hourSelect.setAttribute("aria-label", `${label} hours`);
+
+		for (let hour = 0; hour < 24; hour++) {
+			const optionValue = String(hour).padStart(2, "0");
+			hourSelect.createEl("option", { value: optionValue, text: optionValue });
+		}
+
+		picker.createSpan({ cls: "timeblock-time-divider", text: ":" });
+
+		const minuteSelect = picker.createEl("select", {
+			cls: "timeblock-time-segment timeblock-time-segment--minute",
+		});
+		minuteSelect.setAttribute("aria-label", `${label} minutes`);
+
+		for (let minute = 0; minute < 60; minute++) {
+			const optionValue = String(minute).padStart(2, "0");
+			minuteSelect.createEl("option", { value: optionValue, text: optionValue });
+		}
+
+		hourSelect.value = initialHour;
+		minuteSelect.value = initialMinute;
+
+		const syncValue = () => {
+			input.value = `${hourSelect.value}:${minuteSelect.value}`;
+			onChange();
+		};
+
+		hourSelect.addEventListener("change", syncValue);
+		minuteSelect.addEventListener("change", syncValue);
+
+		return input;
+	}
+
 	onOpen(): void {
 		const { contentEl } = this;
 		contentEl.empty();
@@ -53,25 +111,21 @@ export class FocusBlockCreationModal extends Modal {
 
 		const timeContainer = contentEl.createDiv({ cls: "timeblock-time-container" });
 
-		new Setting(timeContainer)
-			.setName("Start time")
-			.addText((text) => {
-				this.startTimeInput = text.inputEl;
-				this.startTimeInput.type = "time";
-				this.startTimeInput.step = "60";
-				this.startTimeInput.addClass("timeblock-time-input");
-				text.setValue(this.options.startTime || "09:00").onChange(() => this.validateForm());
-			});
+		this.startTimeInput = this.createTimeField(
+			timeContainer,
+			"Start time",
+			this.options.startTime || "09:00",
+			() => this.validateForm()
+		);
 
-		new Setting(timeContainer)
-			.setName("End time")
-			.addText((text) => {
-				this.endTimeInput = text.inputEl;
-				this.endTimeInput.type = "time";
-				this.endTimeInput.step = "60";
-				this.endTimeInput.addClass("timeblock-time-input");
-				text.setValue(this.options.endTime || "10:00").onChange(() => this.validateForm());
-			});
+		timeContainer.createDiv({ cls: "timeblock-time-separator", text: "→" });
+
+		this.endTimeInput = this.createTimeField(
+			timeContainer,
+			"End time",
+			this.options.endTime || "10:00",
+			() => this.validateForm()
+		);
 
 		contentEl.createDiv({
 			cls: "focus-block-time-note",
