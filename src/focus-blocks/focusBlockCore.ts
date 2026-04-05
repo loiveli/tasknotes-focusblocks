@@ -1,7 +1,7 @@
 import { Notice } from "obsidian";
 import { addDays, format } from "date-fns";
 import type TaskNotesPlugin from "../main";
-import type { FocusBlockInfo } from "../types";
+import type { FocusBlockInfo, TaskInfo } from "../types";
 import { FocusBlockService } from "../services/FocusBlockService";
 import { FocusBlockCreationModal } from "./FocusBlockCreationModal";
 import { FocusBlockInfoModal } from "./FocusBlockInfoModal";
@@ -53,6 +53,22 @@ function getWeekdaySetPosition(date: Date): number {
 	const dayOfMonth = date.getDate();
 	const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 	return dayOfMonth + 7 > lastDayOfMonth ? -1 : Math.ceil(dayOfMonth / 7);
+}
+
+export function getFocusBlockTaskCreationPrefill(
+	focusBlock: Pick<FocusBlockInfo, "filterTag">
+): Partial<TaskInfo> {
+	const normalizedTag = String(focusBlock.filterTag || "")
+		.trim()
+		.replace(/^#/, "");
+
+	if (!normalizedTag) {
+		return {};
+	}
+
+	return {
+		tags: [normalizedTag],
+	};
 }
 
 export function updateFocusBlockRecurrenceForMove(

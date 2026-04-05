@@ -2,6 +2,7 @@ import type { TaskInfo } from "../../../src/types";
 import { selectTasksForFocusBlock } from "../../../src/services/FocusBlockService";
 import {
 	getFocusBlockDateTimeRange,
+	getFocusBlockTaskCreationPrefill,
 	shouldShowFocusBlockTasksInCalendar,
 	updateFocusBlockRecurrenceForMove,
 } from "../../../src/focus-blocks/focusBlockCore";
@@ -55,6 +56,70 @@ describe("FocusBlockService", () => {
 		expect(result.primaryTasks.map((task) => task.title)).toEqual(["Urgent work"]);
 		expect(result.overdueTasks).toHaveLength(0);
 		expect(result.allTasks.map((task) => task.title)).toEqual(["Urgent work"]);
+	});
+
+	it("keeps blocked tasks out of the primary set but still shows them when overdue", () => {
+		const tasks: TaskInfo[] = [
+			makeTask({
+				title: "Blocked overdue work",
+				priority: "high",
+				tags: ["work"],
+				due: "2026-04-01",
+				isBlocked: true,
+			}),
+			makeTask({ title: "Ready work", priority: "normal", tags: ["work"] }),
+		];
+
+		const result = selectTasksForFocusBlock(
+			tasks,
+			{ title: "Morning Focus", filterTag: "work", topTasksCount: 1 },
+			{ targetDate }
+		);
+
+		expect(result.primaryTasks.map((task) => task.title)).toEqual(["Ready work"]);
+		expect(result.overdueTasks.map((task) => task.title)).toEqual(["Blocked overdue work"]);
+		expect(result.allTasks.map((task) => task.title)).toEqual(["Ready work", "Blocked overdue work"]);
+	});
+
+	it("keeps priority ahead of sortOrder across different priority groups", () => {
+		const tasks: TaskInfo[] = [
+			makeTask({ title: "Low ranked first", priority: "low", tags: ["work"], sortOrder: "0|000001:" }),
+			makeTask({ title: "High priority task", priority: "high", tags: ["work"] }),
+			makeTask({ title: "Normal ranked", priority: "normal", tags: ["work"], sortOrder: "0|000002:" }),
+		];
+
+		const result = selectTasksForFocusBlock(
+			tasks,
+			{ title: "Morning Focus", filterTag: "work", topTasksCount: 2 },
+			{ targetDate }
+		);
+
+		expect(result.primaryTasks.map((task) => task.title)).toEqual([
+			"High priority task",
+			"Normal ranked",
+		]);
+	});
+
+	it("uses sortOrder as a tiebreaker within the same priority group", () => {
+		const tasks: TaskInfo[] = [
+			makeTask({ title: "Normal later", priority: "normal", tags: ["work"], sortOrder: "0|000003:" }),
+			makeTask({ title: "Normal earlier", priority: "normal", tags: ["work"], sortOrder: "0|000001:" }),
+		];
+
+		const result = selectTasksForFocusBlock(
+			tasks,
+			{ title: "Morning Focus", filterTag: "work", topTasksCount: 2 },
+			{ targetDate }
+		);
+
+		expect(result.primaryTasks.map((task) => task.title)).toEqual(["Normal earlier", "Normal later"]);
+	});
+
+	it("prefills task tags from the Focus Block filter tag for the create-task flow", () => {
+		expect(getFocusBlockTaskCreationPrefill({ filterTag: "work" })).toEqual({
+			tags: ["work"],
+		});
+		expect(getFocusBlockTaskCreationPrefill({ filterTag: undefined })).toEqual({});
 	});
 
 	it("updates weekly recurrence weekday when a Focus Block is moved to another day", () => {

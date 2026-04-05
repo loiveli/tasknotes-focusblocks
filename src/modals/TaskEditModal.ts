@@ -32,6 +32,7 @@ import { ConfirmationModal } from "./ConfirmationModal";
 export interface TaskEditOptions {
 	task: TaskInfo;
 	onTaskUpdated?: (task: TaskInfo) => void;
+	onTaskNoteOpened?: () => void;
 }
 
 export class TaskEditModal extends TaskModal {
@@ -1020,6 +1021,8 @@ export class TaskEditModal extends TaskModal {
 			// Open the file in a new leaf
 			const leaf = this.app.workspace.getLeaf(true);
 			await leaf.openFile(file as TFile);
+
+			this.options.onTaskNoteOpened?.();
 
 			// Close the modal
 			this.close();

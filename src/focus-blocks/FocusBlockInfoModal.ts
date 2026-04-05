@@ -5,6 +5,7 @@ import { RecurrenceContextMenu } from "../components/RecurrenceContextMenu";
 import { getRecurrenceDisplayText, updateDTSTARTInRecurrenceRule } from "../core/recurrence";
 import { FocusBlockService } from "../services/FocusBlockService";
 import { formatDateForStorage } from "../utils/dateUtils";
+import { getFocusBlockTaskCreationPrefill } from "./focusBlockCore";
 
 export class FocusBlockInfoModal extends Modal {
 	private titleInput!: HTMLInputElement;
@@ -166,6 +167,11 @@ export class FocusBlockInfoModal extends Modal {
 		rightButtons.style.display = "flex";
 		rightButtons.style.gap = "8px";
 
+		const createTaskButton = rightButtons.createEl("button", { text: "Create task" });
+		createTaskButton.addEventListener("click", () => {
+			void this.openCreateTaskModal(taskPreviewContainer);
+		});
+
 		const cancelButton = rightButtons.createEl("button", { text: "Cancel" });
 		cancelButton.addEventListener("click", () => this.close());
 
@@ -315,8 +321,33 @@ export class FocusBlockInfoModal extends Modal {
 			new Notice("Could not find task file");
 			return;
 		}
-		this.close();
-		await this.plugin.app.workspace.getLeaf(false).openFile(file);
+
+		await this.plugin.openTaskEditModal(
+			task,
+			(updatedTask) => {
+				this.taskOverrides.set(updatedTask.path, updatedTask);
+				this.requestImmediateRefresh();
+				const taskPreviewContainer = this.contentEl.querySelector(
+					".focus-block-info-modal__tasks-list"
+				) as HTMLElement | null;
+				if (taskPreviewContainer) {
+					void this.renderTaskPreview(taskPreviewContainer);
+				}
+			},
+			() => this.close()
+		);
+	}
+
+	private async openCreateTaskModal(taskPreviewContainer: HTMLElement): Promise<void> {
+		const { TaskCreationModal } = await import("../modals/TaskCreationModal");
+		new TaskCreationModal(this.app, this.plugin, {
+			prePopulatedValues: getFocusBlockTaskCreationPrefill(this.focusBlock),
+			onTaskCreated: (task) => {
+				this.taskOverrides.set(task.path, task);
+				this.requestImmediateRefresh();
+				void this.renderTaskPreview(taskPreviewContainer);
+			},
+		}).open();
 	}
 
 	private requestImmediateRefresh(): void {

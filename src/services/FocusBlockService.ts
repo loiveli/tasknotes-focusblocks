@@ -174,6 +174,11 @@ function compareTasks(
 	b: TaskInfo,
 	getPriorityWeight: (priority?: string) => number
 ): number {
+	const priorityDiff = getPriorityWeight(b.priority) - getPriorityWeight(a.priority);
+	if (priorityDiff !== 0) {
+		return priorityDiff;
+	}
+
 	if (a.sortOrder && b.sortOrder && a.sortOrder !== b.sortOrder) {
 		return a.sortOrder.localeCompare(b.sortOrder);
 	}
@@ -182,11 +187,6 @@ function compareTasks(
 	}
 	if (!a.sortOrder && b.sortOrder) {
 		return 1;
-	}
-
-	const priorityDiff = getPriorityWeight(b.priority) - getPriorityWeight(a.priority);
-	if (priorityDiff !== 0) {
-		return priorityDiff;
 	}
 
 	const dateA = extractDatePart(a.due) || extractDatePart(a.scheduled) || "9999-12-31";
@@ -211,14 +211,16 @@ export function selectTasksForFocusBlock(
 
 	const matchingTasks = tasks
 		.filter((task) => matchesFocusFilter(task, focusBlock.filterTag))
-		.filter((task) => isTaskVisibleOnDate(task, targetDate, isCompletedStatus))
-		.sort((a, b) => compareTasks(a, b, getPriorityWeight));
+		.filter((task) => isTaskVisibleOnDate(task, targetDate, isCompletedStatus));
 
-	const primaryTasks = matchingTasks.slice(0, topTasksCount);
+	const rankedTasks = [...matchingTasks].sort((a, b) => compareTasks(a, b, getPriorityWeight));
+	const primaryTasks = rankedTasks
+		.filter((task) => !task.isBlocked)
+		.slice(0, topTasksCount);
 	const primaryPaths = new Set(primaryTasks.map((task) => task.path));
 
 	const overdueTasks = includeOverdue
-		? matchingTasks.filter((task) => isOverdueTask(task, targetDate) && !primaryPaths.has(task.path))
+		? rankedTasks.filter((task) => isOverdueTask(task, targetDate) && !primaryPaths.has(task.path))
 		: [];
 
 	return {
@@ -416,7 +418,12 @@ export class FocusBlockService {
 			}
 		}
 
-		return selectTasksForFocusBlock(mergedTasks, focusBlock, {
+		const tasksWithBlockedState = mergedTasks.map((task) => ({
+			...task,
+			isBlocked: Boolean(task.isBlocked || this.plugin.dependencyCache?.isTaskBlocked(task.path)),
+		}));
+
+		return selectTasksForFocusBlock(tasksWithBlockedState, focusBlock, {
 			targetDate,
 			getPriorityWeight: (priority) =>
 				priority ? this.plugin.priorityManager.getPriorityWeight(priority) : 0,
