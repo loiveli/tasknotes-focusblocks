@@ -3,6 +3,7 @@ import TaskNotesPlugin from "../main";
 import { RecurrenceContextMenu } from "../components/RecurrenceContextMenu";
 import { getRecurrenceDisplayText } from "../core/recurrence";
 import { FocusBlockService } from "../services/FocusBlockService";
+import { TranslationKey } from "../i18n";
 
 export interface FocusBlockCreationOptions {
 	date: string;
@@ -22,6 +23,7 @@ export class FocusBlockCreationModal extends Modal {
 	private recurrenceButton?: ButtonComponent;
 	private recurrence = "";
 	private recurrenceAnchor: "scheduled" | "completion" = "scheduled";
+	private translate: (key: TranslationKey, variables?: Record<string, any>) => string;
 
 	constructor(
 		app: App,
@@ -29,6 +31,7 @@ export class FocusBlockCreationModal extends Modal {
 		private options: FocusBlockCreationOptions
 	) {
 		super(app);
+		this.translate = plugin.i18n.translate.bind(plugin.i18n);
 	}
 
 	private setupTimeInput(input: HTMLInputElement): void {
@@ -94,18 +97,21 @@ export class FocusBlockCreationModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass("timeblock-creation-modal");
 
-		new Setting(contentEl).setName("Create Focus Block").setHeading();
+		new Setting(contentEl)
+			.setName(this.translate("modals.focusBlockCreation.heading"))
+			.setHeading();
 
 		const dateDisplay = contentEl.createDiv({ cls: "timeblock-date-display" });
-		dateDisplay.createEl("strong", { text: "Date: " });
+		dateDisplay.createEl("strong", { text: this.translate("modals.focusBlockCreation.dateLabel") });
 		dateDisplay.createSpan({ text: this.options.date });
 
 		new Setting(contentEl)
-			.setName("Title")
-			.setDesc("Name for this Focus Block")
+			.setName(this.translate("modals.focusBlockCreation.titleLabel"))
+			.setDesc(this.translate("modals.focusBlockCreation.titleDesc"))
 			.addText((text) => {
 				this.titleInput = text.inputEl;
-				text.setPlaceholder("Morning Focus").onChange(() => this.validateForm());
+				text.setPlaceholder(this.translate("modals.focusBlockCreation.titlePlaceholder"))
+					.onChange(() => this.validateForm());
 				window.setTimeout(() => this.titleInput.focus(), 50);
 			});
 
@@ -113,7 +119,7 @@ export class FocusBlockCreationModal extends Modal {
 
 		this.startTimeInput = this.createTimeField(
 			timeContainer,
-			"Start time",
+			this.translate("modals.focusBlockCreation.startTimeLabel"),
 			this.options.startTime || "09:00",
 			() => this.validateForm()
 		);
@@ -122,43 +128,46 @@ export class FocusBlockCreationModal extends Modal {
 
 		this.endTimeInput = this.createTimeField(
 			timeContainer,
-			"End time",
+			this.translate("modals.focusBlockCreation.endTimeLabel"),
 			this.options.endTime || "10:00",
 			() => this.validateForm()
 		);
 
 		contentEl.createDiv({
 			cls: "focus-block-time-note",
-			text: "Tip: any minute is allowed, and the end time can go past midnight.",
+			text: this.translate("modals.focusBlockCreation.timeNote"),
 		});
 
 		new Setting(contentEl)
-			.setName("Recurrence")
-			.setDesc("Reuse the same recurrence UI and logic as TaskNotes tasks")
+			.setName(this.translate("modals.focusBlockCreation.recurrenceLabel"))
+			.setDesc(this.translate("modals.focusBlockCreation.recurrenceDesc"))
 			.addButton((button) => {
 				this.recurrenceButton = button;
 				this.updateRecurrenceButton();
 				button.onClick((event) => this.showRecurrenceMenu(event));
 			})
 			.addExtraButton((button) => {
-				button.setIcon("x").setTooltip("Clear recurrence").onClick(() => {
-					this.recurrence = "";
-					this.recurrenceAnchor = "scheduled";
-					this.updateRecurrenceButton();
-				});
+				button
+					.setIcon("x")
+					.setTooltip(this.translate("components.recurrenceContextMenu.clearRecurrence"))
+					.onClick(() => {
+						this.recurrence = "";
+						this.recurrenceAnchor = "scheduled";
+						this.updateRecurrenceButton();
+					});
 			});
 
 		new Setting(contentEl)
-			.setName("Filter tag")
-			.setDesc("Optional tag to limit which tasks appear in this Focus Block")
+			.setName(this.translate("modals.focusBlockCreation.filterTagLabel"))
+			.setDesc(this.translate("modals.focusBlockCreation.filterTagDesc"))
 			.addText((text) => {
 				this.filterTagInput = text.inputEl;
-				text.setPlaceholder("work");
+				text.setPlaceholder(this.translate("modals.focusBlockCreation.filterTagPlaceholder"));
 			});
 
 		new Setting(contentEl)
-			.setName("Top tasks")
-			.setDesc("How many priority tasks to surface before showing overdue tasks")
+			.setName(this.translate("modals.focusBlockCreation.topTasksLabel"))
+			.setDesc(this.translate("modals.focusBlockCreation.topTasksDesc"))
 			.addText((text) => {
 				this.topTasksCountInput = text.inputEl;
 				this.topTasksCountInput.type = "number";
@@ -167,16 +176,16 @@ export class FocusBlockCreationModal extends Modal {
 			});
 
 		new Setting(contentEl)
-			.setName("Description")
-			.setDesc("Optional notes for this Focus Block")
+			.setName(this.translate("modals.focusBlockCreation.descriptionLabel"))
+			.setDesc(this.translate("modals.focusBlockCreation.descriptionDesc"))
 			.addTextArea((text) => {
 				this.descriptionInput = text.inputEl;
 				this.descriptionInput.rows = 3;
 			});
 
 		new Setting(contentEl)
-			.setName("Color")
-			.setDesc("Calendar color for this Focus Block")
+			.setName(this.translate("modals.focusBlockCreation.colorLabel"))
+			.setDesc(this.translate("modals.focusBlockCreation.colorDesc"))
 			.addText((text) => {
 				this.colorInput = text.inputEl;
 				this.colorInput.type = "color";
@@ -184,11 +193,13 @@ export class FocusBlockCreationModal extends Modal {
 			});
 
 		const buttonContainer = contentEl.createDiv({ cls: "timeblock-modal-buttons" });
-		const cancelButton = buttonContainer.createEl("button", { text: "Cancel" });
+		const cancelButton = buttonContainer.createEl("button", {
+			text: this.translate("common.cancel"),
+		});
 		cancelButton.addEventListener("click", () => this.close());
 
 		const createButton = buttonContainer.createEl("button", {
-			text: "Create Focus Block",
+			text: this.translate("modals.focusBlockCreation.createButton"),
 			cls: "mod-cta focus-block-create-button",
 		});
 		createButton.addEventListener("click", () => {
@@ -202,7 +213,9 @@ export class FocusBlockCreationModal extends Modal {
 		if (!this.recurrenceButton) {
 			return;
 		}
-		const label = this.recurrence ? getRecurrenceDisplayText(this.recurrence) || "Recurring" : "Set recurrence";
+		const label = this.recurrence
+			? getRecurrenceDisplayText(this.recurrence) || this.translate("focusBlocks.common.recurring")
+			: this.translate("focusBlocks.common.setRecurrence");
 		this.recurrenceButton.setButtonText(label);
 	}
 
@@ -247,7 +260,7 @@ export class FocusBlockCreationModal extends Modal {
 		const endTime = this.endTimeInput.value;
 
 		if (!title || !startTime || !endTime || endTime === startTime) {
-			new Notice("Please provide a valid title and time range");
+			new Notice(this.translate("modals.focusBlockCreation.notices.invalidRange"));
 			return;
 		}
 
@@ -266,12 +279,12 @@ export class FocusBlockCreationModal extends Modal {
 				color: this.colorInput.value,
 				description: this.descriptionInput.value.trim() || undefined,
 			});
-			new Notice("Focus Block created");
+			new Notice(this.translate("modals.focusBlockCreation.notices.success"));
 			this.close();
 			this.options.onCreated?.();
 		} catch (error) {
 			console.error("Failed to create Focus Block:", error);
-			new Notice("Failed to create Focus Block");
+			new Notice(this.translate("modals.focusBlockCreation.notices.failure"));
 		}
 	}
 }

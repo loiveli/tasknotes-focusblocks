@@ -671,14 +671,14 @@ export function renderFeaturesTab(
 	createSettingGroup(
 		container,
 		{
-			heading: "Focus Blocks",
-			description: "Separate recurring focus-time blocks that surface top tasks and matching overdue tasks.",
+			heading: translate("settings.features.focusBlocks.header"),
+			description: translate("settings.features.focusBlocks.description"),
 		},
 		(group) => {
 			group.addSetting((setting) =>
 				configureToggleSetting(setting, {
-					name: "Enable Focus Blocks",
-					desc: "Turn on the Focus Block feature in the calendar.",
+					name: translate("settings.features.focusBlocks.enableName"),
+					desc: translate("settings.features.focusBlocks.enableDesc"),
 					getValue: () => plugin.settings.calendarViewSettings.enableFocusBlocks,
 					setValue: async (value: boolean) => {
 						plugin.settings.calendarViewSettings.enableFocusBlocks = value;
@@ -691,8 +691,8 @@ export function renderFeaturesTab(
 			if (plugin.settings.calendarViewSettings.enableFocusBlocks) {
 				group.addSetting((setting) =>
 					configureToggleSetting(setting, {
-						name: "Show Focus Blocks by default",
-						desc: "Display Focus Blocks in calendar views when the feature is enabled.",
+						name: translate("settings.features.focusBlocks.showByDefaultName"),
+						desc: translate("settings.features.focusBlocks.showByDefaultDesc"),
 						getValue: () => plugin.settings.calendarViewSettings.defaultShowFocusBlocks,
 						setValue: async (value: boolean) => {
 							plugin.settings.calendarViewSettings.defaultShowFocusBlocks = value;
@@ -703,8 +703,8 @@ export function renderFeaturesTab(
 
 				group.addSetting((setting) => {
 					setting
-						.setName("Default Focus Block color")
-						.setDesc("Default calendar color for newly created Focus Blocks.")
+						.setName(translate("settings.features.focusBlocks.defaultColorName"))
+						.setDesc(translate("settings.features.focusBlocks.defaultColorDesc"))
 						.addText((text) => {
 							text.inputEl.type = "color";
 							text.setValue(plugin.settings.calendarViewSettings.defaultFocusBlockColor);
@@ -717,8 +717,8 @@ export function renderFeaturesTab(
 
 				group.addSetting((setting) =>
 					configureToggleSetting(setting, {
-						name: "Show tasks on all Focus Blocks",
-						desc: "When off, task previews are only shown on the currently active Focus Block in the calendar. Opening the block still shows all tasks in the modal.",
+						name: translate("settings.features.focusBlocks.showTasksOnAllName"),
+						desc: translate("settings.features.focusBlocks.showTasksOnAllDesc"),
 						getValue: () => plugin.settings.calendarViewSettings.showTasksOnAllFocusBlocks,
 						setValue: async (value: boolean) => {
 							plugin.settings.calendarViewSettings.showTasksOnAllFocusBlocks = value;

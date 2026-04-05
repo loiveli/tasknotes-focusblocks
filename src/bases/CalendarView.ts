@@ -1894,7 +1894,7 @@ export class CalendarView extends BasesViewBase {
 
 		if (this.plugin.settings.calendarViewSettings.enableFocusBlocks) {
 			menu.addItem((item) => {
-				item.setTitle("Create Focus Block")
+				item.setTitle(this.plugin.i18n.translate("focusBlocks.actions.createFromCalendar"))
 					.setIcon("target")
 					.onClick(async () => {
 						this.expectImmediateUpdate();

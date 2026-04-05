@@ -211,7 +211,7 @@ export async function handleFocusBlockCreation(
 	onCreated?: () => void
 ): Promise<void> {
 	if (allDay) {
-		new Notice("Focus Blocks must have a specific time range. Please select time in day or week view.");
+		new Notice(plugin.i18n.translate("focusBlocks.notices.timeRangeRequired"));
 		return;
 	}
 
@@ -264,10 +264,14 @@ export async function handleFocusBlockDrop(
 			endTime: newEndTime,
 			recurrence,
 		});
-		new Notice("Focus Block moved");
+		new Notice(plugin.i18n.translate("focusBlocks.notices.moved"));
 	} catch (error: any) {
 		console.error("Error moving Focus Block:", error);
-		new Notice(`Failed to move Focus Block: ${error.message || error}`);
+		new Notice(
+			plugin.i18n.translate("focusBlocks.notices.moveFailed", {
+				message: error.message || String(error),
+			})
+		);
 		dropInfo.revert();
 	}
 }
@@ -304,10 +308,14 @@ export async function handleFocusBlockResize(
 			endTime: newEndTime,
 			recurrence,
 		});
-		new Notice("Focus Block updated");
+		new Notice(plugin.i18n.translate("focusBlocks.notices.updated"));
 	} catch (error: any) {
 		console.error("Error resizing Focus Block:", error);
-		new Notice(`Failed to resize Focus Block: ${error.message || error}`);
+		new Notice(
+			plugin.i18n.translate("focusBlocks.notices.resizeFailed", {
+				message: error.message || String(error),
+			})
+		);
 		resizeInfo.revert();
 	}
 }
@@ -393,32 +401,42 @@ export async function enhanceFocusBlockEventPreview(
 
 		const topTaskLimit = Math.max(1, Number(focusBlock.topTasksCount || 1));
 		if (result.primaryTasks.length > 0) {
-			appendLine("Tasks:", { header: true });
+			appendLine(plugin.i18n.translate("focusBlocks.preview.tasksHeader"), { header: true });
 			result.primaryTasks.slice(0, topTaskLimit).forEach((task) => {
-				appendLine(`• ${task.title || "Untitled task"}`);
+				appendLine(`• ${task.title || plugin.i18n.translate("focusBlocks.common.untitledTask")}`);
 			});
 		}
 
 		if (result.overdueTasks.length > 0) {
-			appendLine("Overdue:", { header: true, overdue: true });
+			appendLine(plugin.i18n.translate("focusBlocks.preview.overdueHeader"), {
+				header: true,
+				overdue: true,
+			});
 			const visibleOverdue = result.overdueTasks.slice(0, 3);
 			visibleOverdue.forEach((task) => {
-				appendLine(`• ${task.title || "Untitled task"}`, { overdue: true });
+				appendLine(`• ${task.title || plugin.i18n.translate("focusBlocks.common.untitledTask")}`, {
+					overdue: true,
+				});
 			});
 			if (result.overdueTasks.length > visibleOverdue.length) {
-				appendLine(`+${result.overdueTasks.length - visibleOverdue.length} overdue tasks`, {
-					overdue: true,
-					muted: true,
-				});
+				appendLine(
+					plugin.i18n.translate("focusBlocks.preview.moreOverdueTasks", {
+						count: result.overdueTasks.length - visibleOverdue.length,
+					}),
+					{
+						overdue: true,
+						muted: true,
+					}
+				);
 			}
 		}
 
 		if (result.allTasks.length === 0) {
-			appendLine("No tasks", { muted: true });
+			appendLine(plugin.i18n.translate("focusBlocks.preview.noTasks"), { muted: true });
 		}
 	} catch (error) {
 		console.error("Failed to load Focus Block task preview:", error);
-		preview.textContent = "Unable to load tasks";
+		preview.textContent = plugin.i18n.translate("focusBlocks.preview.unableToLoadTasks");
 	}
 }
 

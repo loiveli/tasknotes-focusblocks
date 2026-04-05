@@ -36,7 +36,7 @@ export function createFocusBlockCard(
 	const content = mainRow.createEl("div", { cls: "task-card__content" });
 	content.createEl("div", {
 		cls: "task-card__title",
-		text: focusBlock.title || "Focus Block",
+		text: focusBlock.title || plugin.i18n.translate("focusBlocks.common.defaultTitle"),
 	});
 
 	const metadata = content.createEl("div", { cls: "task-card__metadata" });
@@ -65,7 +65,9 @@ export function createFocusBlockCard(
 		: null;
 	if (tasksContainer) {
 		tasksContainer.style.marginTop = "6px";
-		tasksContainer.createEl("div", { text: "Loading tasks..." });
+		tasksContainer.createEl("div", {
+			text: plugin.i18n.translate("focusBlocks.preview.loadingTasks"),
+		});
 	}
 
 	const service = new FocusBlockService(plugin);
@@ -86,7 +88,7 @@ export function createFocusBlockCard(
 
 			if (result.allTasks.length === 0) {
 				const emptyState = tasksContainer.createEl("div", {
-					text: "No tasks",
+					text: plugin.i18n.translate("focusBlocks.preview.noTasks"),
 					cls: "focus-block-card__empty",
 				});
 				emptyState.style.fontSize = "var(--tn-font-size-sm)";
@@ -96,7 +98,7 @@ export function createFocusBlockCard(
 
 			if (result.primaryTasks.length > 0) {
 				const heading = tasksContainer.createEl("div", {
-					text: "Tasks:",
+					text: plugin.i18n.translate("focusBlocks.preview.tasksHeader"),
 				});
 				heading.style.fontSize = "var(--tn-font-size-sm)";
 				heading.style.fontWeight = "600";
@@ -105,7 +107,9 @@ export function createFocusBlockCard(
 			}
 
 			if (result.overdueTasks.length > 0) {
-				const overdueHeading = tasksContainer.createEl("div", { text: "Overdue:" });
+				const overdueHeading = tasksContainer.createEl("div", {
+					text: plugin.i18n.translate("focusBlocks.preview.overdueHeader"),
+				});
 				overdueHeading.style.fontSize = "var(--tn-font-size-sm)";
 				overdueHeading.style.fontWeight = "600";
 				overdueHeading.style.marginTop = "6px";
@@ -115,7 +119,9 @@ export function createFocusBlockCard(
 				visibleOverdue.forEach((task) => renderTaskRow(tasksContainer, task, true));
 				if (result.overdueTasks.length > visibleOverdue.length) {
 					const moreOverdue = tasksContainer.createEl("div", {
-						text: `+${result.overdueTasks.length - visibleOverdue.length} overdue tasks`,
+						text: plugin.i18n.translate("focusBlocks.preview.moreOverdueTasks", {
+							count: result.overdueTasks.length - visibleOverdue.length,
+						}),
 					});
 					moreOverdue.style.fontSize = "var(--tn-font-size-sm)";
 					moreOverdue.style.color = "var(--text-error)";
@@ -125,7 +131,7 @@ export function createFocusBlockCard(
 		} catch (error) {
 			console.error("Failed to render Focus Block tasks:", error);
 			const errorState = tasksContainer.createEl("div", {
-				text: "Unable to load tasks",
+				text: plugin.i18n.translate("focusBlocks.preview.unableToLoadTasks"),
 				cls: "focus-block-card__empty",
 			});
 			errorState.style.fontSize = "var(--tn-font-size-sm)";
@@ -158,7 +164,9 @@ export function createFocusBlockCard(
 			}
 		});
 
-		const label = row.createEl("span", { text: task.title || "Untitled task" });
+		const label = row.createEl("span", {
+			text: task.title || plugin.i18n.translate("focusBlocks.common.untitledTask"),
+		});
 		label.style.fontSize = "var(--tn-font-size-md)";
 		label.style.lineHeight = "1.35";
 		if (isOverdue) {

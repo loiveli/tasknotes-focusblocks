@@ -6,6 +6,7 @@ import { getRecurrenceDisplayText, updateDTSTARTInRecurrenceRule } from "../core
 import { FocusBlockService } from "../services/FocusBlockService";
 import { formatDateForStorage } from "../utils/dateUtils";
 import { getFocusBlockTaskCreationPrefill } from "./focusBlockCore";
+import { TranslationKey } from "../i18n";
 
 export class FocusBlockInfoModal extends Modal {
 	private titleInput!: HTMLInputElement;
@@ -20,6 +21,7 @@ export class FocusBlockInfoModal extends Modal {
 	private recurrence = "";
 	private recurrenceAnchor: "scheduled" | "completion" = "scheduled";
 	private readonly taskOverrides = new Map<string, TaskInfo>();
+	private translate: (key: TranslationKey, variables?: Record<string, any>) => string;
 
 	constructor(
 		app: App,
@@ -31,6 +33,7 @@ export class FocusBlockInfoModal extends Modal {
 		super(app);
 		this.recurrence = focusBlock.recurrence || "";
 		this.recurrenceAnchor = focusBlock.recurrence_anchor || "scheduled";
+		this.translate = plugin.i18n.translate.bind(plugin.i18n);
 	}
 
 	private setupTimeInput(input: HTMLInputElement): void {
@@ -96,24 +99,30 @@ export class FocusBlockInfoModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass("timeblock-info-modal");
 
-		new Setting(contentEl).setName("Edit Focus Block").setHeading();
+		new Setting(contentEl)
+			.setName(this.translate("modals.focusBlockInfo.heading"))
+			.setHeading();
 
 		const dateDisplay = contentEl.createDiv({ cls: "timeblock-date-display" });
-		dateDisplay.createEl("strong", { text: "Date/time: " });
+		dateDisplay.createEl("strong", { text: this.translate("modals.focusBlockInfo.dateTimeLabel") });
 		dateDisplay.createSpan({
-			text: `${this.eventDate.toLocaleDateString()} from ${this.focusBlock.startTime} to ${this.focusBlock.endTime}`,
+			text: this.translate("modals.focusBlockInfo.dateTimeValue", {
+				date: this.eventDate.toLocaleDateString(),
+				startTime: this.focusBlock.startTime,
+				endTime: this.focusBlock.endTime,
+			}),
 		});
 
 		new Setting(contentEl)
-			.setName("Title")
+			.setName(this.translate("modals.focusBlockInfo.titleLabel"))
 			.addText((text) => {
 				this.titleInput = text.inputEl;
 				text.setValue(this.focusBlock.title || "").onChange(() => this.validateForm());
 			});
 
 		new Setting(contentEl)
-			.setName("Scheduled date")
-			.setDesc("Date this Focus Block is anchored to")
+			.setName(this.translate("modals.focusBlockInfo.scheduledDateLabel"))
+			.setDesc(this.translate("modals.focusBlockInfo.scheduledDateDesc"))
 			.addText((text) => {
 				this.scheduledDateInput = text.inputEl;
 				this.scheduledDateInput.type = "date";
@@ -124,7 +133,7 @@ export class FocusBlockInfoModal extends Modal {
 
 		this.startTimeInput = this.createTimeField(
 			timeContainer,
-			"Start time",
+			this.translate("modals.focusBlockInfo.startTimeLabel"),
 			this.focusBlock.startTime || "09:00",
 			() => this.validateForm()
 		);
@@ -133,41 +142,44 @@ export class FocusBlockInfoModal extends Modal {
 
 		this.endTimeInput = this.createTimeField(
 			timeContainer,
-			"End time",
+			this.translate("modals.focusBlockInfo.endTimeLabel"),
 			this.focusBlock.endTime || "10:00",
 			() => this.validateForm()
 		);
 
 		contentEl.createDiv({
 			cls: "focus-block-time-note",
-			text: "Tip: any minute is allowed, and the end time can go past midnight.",
+			text: this.translate("modals.focusBlockInfo.timeNote"),
 		});
 
 		new Setting(contentEl)
-			.setName("Recurrence")
-			.setDesc("Reuse the same recurrence UI and logic as TaskNotes tasks")
+			.setName(this.translate("modals.focusBlockInfo.recurrenceLabel"))
+			.setDesc(this.translate("modals.focusBlockInfo.recurrenceDesc"))
 			.addButton((button) => {
 				this.recurrenceButton = button;
 				this.updateRecurrenceButton();
 				button.onClick((event) => this.showRecurrenceMenu(event));
 			})
 			.addExtraButton((button) => {
-				button.setIcon("x").setTooltip("Clear recurrence").onClick(() => {
-					this.recurrence = "";
-					this.recurrenceAnchor = "scheduled";
-					this.updateRecurrenceButton();
-				});
+				button
+					.setIcon("x")
+					.setTooltip(this.translate("components.recurrenceContextMenu.clearRecurrence"))
+					.onClick(() => {
+						this.recurrence = "";
+						this.recurrenceAnchor = "scheduled";
+						this.updateRecurrenceButton();
+					});
 			});
 
 		new Setting(contentEl)
-			.setName("Filter tag")
+			.setName(this.translate("modals.focusBlockInfo.filterTagLabel"))
 			.addText((text) => {
 				this.filterTagInput = text.inputEl;
 				text.setValue(this.focusBlock.filterTag || "");
 			});
 
 		new Setting(contentEl)
-			.setName("Top tasks")
+			.setName(this.translate("modals.focusBlockInfo.topTasksLabel"))
 			.addText((text) => {
 				this.topTasksCountInput = text.inputEl;
 				this.topTasksCountInput.type = "number";
@@ -176,7 +188,7 @@ export class FocusBlockInfoModal extends Modal {
 			});
 
 		new Setting(contentEl)
-			.setName("Description")
+			.setName(this.translate("modals.focusBlockInfo.descriptionLabel"))
 			.addTextArea((text) => {
 				this.descriptionInput = text.inputEl;
 				this.descriptionInput.rows = 3;
@@ -184,7 +196,7 @@ export class FocusBlockInfoModal extends Modal {
 			});
 
 		new Setting(contentEl)
-			.setName("Color")
+			.setName(this.translate("modals.focusBlockInfo.colorLabel"))
 			.addText((text) => {
 				this.colorInput = text.inputEl;
 				this.colorInput.type = "color";
@@ -196,7 +208,7 @@ export class FocusBlockInfoModal extends Modal {
 		const taskPreviewSection = contentEl.createDiv({ cls: "focus-block-info-modal__tasks" });
 		taskPreviewSection.style.marginTop = "12px";
 		taskPreviewSection.createEl("div", {
-			text: "Tasks",
+			text: this.translate("modals.focusBlockInfo.sections.tasks"),
 			cls: "setting-item-name",
 		});
 		const taskPreviewContainer = taskPreviewSection.createDiv({
@@ -210,7 +222,7 @@ export class FocusBlockInfoModal extends Modal {
 		buttonContainer.style.justifyContent = "space-between";
 
 		const deleteButton = buttonContainer.createEl("button", {
-			text: "Delete",
+			text: this.translate("modals.focusBlockInfo.buttons.delete"),
 			cls: "mod-warning",
 		});
 		deleteButton.addEventListener("click", () => {
@@ -221,16 +233,20 @@ export class FocusBlockInfoModal extends Modal {
 		rightButtons.style.display = "flex";
 		rightButtons.style.gap = "8px";
 
-		const createTaskButton = rightButtons.createEl("button", { text: "Create task" });
+		const createTaskButton = rightButtons.createEl("button", {
+			text: this.translate("modals.focusBlockInfo.buttons.createTask"),
+		});
 		createTaskButton.addEventListener("click", () => {
 			void this.openCreateTaskModal(taskPreviewContainer);
 		});
 
-		const cancelButton = rightButtons.createEl("button", { text: "Cancel" });
+		const cancelButton = rightButtons.createEl("button", {
+			text: this.translate("common.cancel"),
+		});
 		cancelButton.addEventListener("click", () => this.close());
 
 		const saveButton = rightButtons.createEl("button", {
-			text: "Save",
+			text: this.translate("common.save"),
 			cls: "mod-cta focus-block-save-button",
 		});
 		saveButton.addEventListener("click", () => {
@@ -244,7 +260,9 @@ export class FocusBlockInfoModal extends Modal {
 		if (!this.recurrenceButton) {
 			return;
 		}
-		const label = this.recurrence ? getRecurrenceDisplayText(this.recurrence) || "Recurring" : "Set recurrence";
+		const label = this.recurrence
+			? getRecurrenceDisplayText(this.recurrence) || this.translate("focusBlocks.common.recurring")
+			: this.translate("focusBlocks.common.setRecurrence");
 		this.recurrenceButton.setButtonText(label);
 	}
 
@@ -267,7 +285,9 @@ export class FocusBlockInfoModal extends Modal {
 
 	private async renderTaskPreview(container: HTMLElement): Promise<void> {
 		container.empty();
-		const loading = container.createEl("div", { text: "Loading tasks..." });
+		const loading = container.createEl("div", {
+			text: this.translate("focusBlocks.preview.loadingTasks"),
+		});
 		loading.style.fontSize = "var(--tn-font-size-sm)";
 		loading.style.color = "var(--tn-text-muted)";
 
@@ -281,7 +301,9 @@ export class FocusBlockInfoModal extends Modal {
 			container.empty();
 
 			if (result.allTasks.length === 0) {
-				const emptyState = container.createEl("div", { text: "No tasks" });
+				const emptyState = container.createEl("div", {
+					text: this.translate("focusBlocks.preview.noTasks"),
+				});
 				emptyState.style.fontSize = "var(--tn-font-size-sm)";
 				emptyState.style.color = "var(--tn-text-muted)";
 				return;
@@ -289,7 +311,7 @@ export class FocusBlockInfoModal extends Modal {
 
 			if (result.primaryTasks.length > 0) {
 				const heading = container.createEl("div", {
-					text: "Tasks:",
+					text: this.translate("focusBlocks.preview.tasksHeader"),
 				});
 				heading.style.fontSize = "var(--tn-font-size-sm)";
 				heading.style.fontWeight = "600";
@@ -298,7 +320,9 @@ export class FocusBlockInfoModal extends Modal {
 			}
 
 			if (result.overdueTasks.length > 0) {
-				const overdueHeading = container.createEl("div", { text: "Overdue:" });
+				const overdueHeading = container.createEl("div", {
+					text: this.translate("focusBlocks.preview.overdueHeader"),
+				});
 				overdueHeading.style.fontSize = "var(--tn-font-size-sm)";
 				overdueHeading.style.fontWeight = "600";
 				overdueHeading.style.marginTop = "6px";
@@ -308,7 +332,9 @@ export class FocusBlockInfoModal extends Modal {
 				visibleOverdue.forEach((task) => this.renderTaskPreviewRow(container, task, true));
 				if (result.overdueTasks.length > visibleOverdue.length) {
 					const moreOverdue = container.createEl("div", {
-						text: `+${result.overdueTasks.length - visibleOverdue.length} overdue tasks`,
+						text: this.translate("focusBlocks.preview.moreOverdueTasks", {
+							count: result.overdueTasks.length - visibleOverdue.length,
+						}),
 					});
 					moreOverdue.style.fontSize = "var(--tn-font-size-sm)";
 					moreOverdue.style.color = "var(--text-error)";
@@ -318,7 +344,9 @@ export class FocusBlockInfoModal extends Modal {
 		} catch (error) {
 			console.error("Failed to load Focus Block tasks:", error);
 			container.empty();
-			const errorState = container.createEl("div", { text: "Unable to load tasks" });
+			const errorState = container.createEl("div", {
+				text: this.translate("focusBlocks.preview.unableToLoadTasks"),
+			});
 			errorState.style.fontSize = "var(--tn-font-size-sm)";
 			errorState.style.color = "var(--text-error)";
 		}
@@ -355,7 +383,9 @@ export class FocusBlockInfoModal extends Modal {
 			}
 		});
 
-		const label = row.createEl("span", { text: task.title || "Untitled task" });
+		const label = row.createEl("span", {
+			text: task.title || this.translate("focusBlocks.common.untitledTask"),
+		});
 		label.style.flex = "1";
 		if (isOverdue) {
 			label.style.color = "var(--text-error)";
@@ -372,7 +402,7 @@ export class FocusBlockInfoModal extends Modal {
 	private async openTaskFromPreview(task: TaskInfo): Promise<void> {
 		const file = this.plugin.app.vault.getAbstractFileByPath(task.path);
 		if (!(file instanceof TFile)) {
-			new Notice("Could not find task file");
+			new Notice(this.translate("modals.focusBlockInfo.notices.taskFileMissing"));
 			return;
 		}
 
@@ -514,16 +544,20 @@ export class FocusBlockInfoModal extends Modal {
 			});
 			this.onChange?.();
 			this.plugin.emitter.trigger(EVENT_DATA_CHANGED);
-			new Notice("Focus Block updated");
+			new Notice(this.translate("modals.focusBlockInfo.notices.updateSuccess"));
 			this.close();
 		} catch (error) {
 			console.error("Failed to save Focus Block:", error);
-			new Notice("Failed to save Focus Block");
+			new Notice(this.translate("modals.focusBlockInfo.notices.updateFailure"));
 		}
 	}
 
 	private async handleDelete(): Promise<void> {
-		const confirmed = window.confirm(`Delete Focus Block "${this.focusBlock.title}"?`);
+		const confirmed = window.confirm(
+			this.translate("modals.focusBlockInfo.deleteConfirmation", {
+				title: this.focusBlock.title,
+			})
+		);
 		if (!confirmed) {
 			return;
 		}
@@ -533,11 +567,11 @@ export class FocusBlockInfoModal extends Modal {
 			await service.deleteFocusBlock(this.focusBlock);
 			this.onChange?.();
 			this.plugin.emitter.trigger(EVENT_DATA_CHANGED);
-			new Notice("Focus Block deleted");
+			new Notice(this.translate("modals.focusBlockInfo.notices.deleteSuccess"));
 			this.close();
 		} catch (error) {
 			console.error("Failed to delete Focus Block:", error);
-			new Notice("Failed to delete Focus Block");
+			new Notice(this.translate("modals.focusBlockInfo.notices.deleteFailure"));
 		}
 	}
 }
