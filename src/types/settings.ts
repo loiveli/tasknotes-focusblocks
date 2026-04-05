@@ -356,6 +356,11 @@ export interface CalendarViewSettings {
 	defaultShowTimeblocks: boolean;
 	defaultTimeblockColor: string;
 	timeblockAttachmentSearchOrder: TimeblockAttachmentSearchOrder;
+	// Focus Block settings
+	enableFocusBlocks: boolean;
+	defaultShowFocusBlocks: boolean;
+	defaultFocusBlockColor: string;
+	showTasksOnAllFocusBlocks: boolean; // Show task previews on every Focus Block, or only the currently active one
 	// Calendar behavior
 	nowIndicator: boolean;
 	selectMirror: boolean;

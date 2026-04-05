@@ -1343,9 +1343,13 @@ export default class TaskNotesPlugin extends Plugin {
 	/**
 	 * Opens the task edit modal for a specific task
 	 */
-	async openTaskEditModal(task: TaskInfo, onTaskUpdated?: (task: TaskInfo) => void) {
+	async openTaskEditModal(
+		task: TaskInfo,
+		onTaskUpdated?: (task: TaskInfo) => void,
+		onTaskNoteOpened?: () => void
+	) {
 		// With native cache, task data is always current - no need to refetch
-		new TaskEditModal(this.app, this, { task, onTaskUpdated }).open();
+		new TaskEditModal(this.app, this, { task, onTaskUpdated, onTaskNoteOpened }).open();
 	}
 
 	/**

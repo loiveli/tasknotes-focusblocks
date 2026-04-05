@@ -9,7 +9,7 @@
 
 import { format } from "date-fns";
 import TaskNotesPlugin from "../main";
-import { TaskInfo, ICSEvent, TimeBlock, EVENT_DATA_CHANGED } from "../types";
+import { TaskInfo, ICSEvent, TimeBlock, FocusBlockInfo, EVENT_DATA_CHANGED } from "../types";
 import {
 	hasTimeComponent,
 	getDatePart,
@@ -25,6 +25,7 @@ import { getAllDailyNotes, getDailyNote, appHasDailyNotesPluginLoaded, createDai
 import { TimeblockCreationModal } from "../modals/TimeblockCreationModal";
 import { openTaskSelector } from "../modals/TaskSelectorWithCreateModal";
 import { TimeblockInfoModal } from "../modals/TimeblockInfoModal";
+import { generateFocusBlockEvents } from "../focus-blocks/focusBlockCore";
 
 export interface CalendarEvent {
 	id: string;
@@ -40,7 +41,8 @@ export interface CalendarEvent {
 		taskInfo?: TaskInfo;
 		icsEvent?: ICSEvent;
 		timeblock?: TimeBlock;
-		eventType: "scheduled" | "due" | "scheduledToDueSpan" | "timeEntry" | "recurring" | "ics" | "timeblock" | "property-based";
+		focusBlock?: FocusBlockInfo;
+		eventType: "scheduled" | "due" | "scheduledToDueSpan" | "timeEntry" | "recurring" | "ics" | "timeblock" | "focusblock" | "property-based";
 		filePath?: string; // For property-based events
 		file?: any; // For property-based events
 		basesEntry?: any; // For property-based events - full Bases entry with getValue()
@@ -67,6 +69,7 @@ export interface CalendarEventGenerationOptions {
 	showRecurring?: boolean;
 	showICSEvents?: boolean;
 	showTimeblocks?: boolean;
+	showFocusBlocks?: boolean;
 	visibleStart?: Date;
 	visibleEnd?: Date;
 }
@@ -967,6 +970,7 @@ export async function generateCalendarEvents(
 		showRecurring = true,
 		showICSEvents = true,
 		showTimeblocks = false,
+		showFocusBlocks = false,
 		visibleStart,
 		visibleEnd,
 	} = options;
@@ -1056,6 +1060,12 @@ export async function generateCalendarEvents(
 	if (showTimeblocks && visibleStart && visibleEnd) {
 		const timeblockEvents = await generateTimeblockEvents(plugin, visibleStart, visibleEnd);
 		events.push(...timeblockEvents);
+	}
+
+	// Add Focus Block events
+	if (showFocusBlocks && visibleStart && visibleEnd) {
+		const focusBlockEvents = await generateFocusBlockEvents(plugin, visibleStart, visibleEnd);
+		events.push(...focusBlockEvents);
 	}
 
 	return events;

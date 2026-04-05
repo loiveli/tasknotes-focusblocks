@@ -509,6 +509,26 @@ export interface TimeBlock {
 	description?: string; // Optional description
 }
 
+export interface FocusBlockInfo {
+	id: string;
+	title: string;
+	path: string;
+	focusBlock: true;
+	type: "focus-block";
+	startTime: string;
+	endTime: string;
+	scheduled?: string;
+	recurrence?: string;
+	recurrence_anchor?: "scheduled" | "completion";
+	filterTag?: string;
+	topTasksCount?: number;
+	includeOverdue?: boolean;
+	color?: string;
+	description?: string;
+	dateCreated?: string;
+	dateModified?: string;
+}
+
 // Note types
 export interface NoteInfo {
 	title: string;
@@ -551,6 +571,25 @@ export interface TaskFrontmatter {
 	completedDate?: string;
 	timeEstimate?: number;
 	timeEntries?: TimeEntry[];
+}
+
+export interface FocusBlockFrontmatter {
+	id: string;
+	title: string;
+	focusBlock: true;
+	type: "focus-block";
+	startTime: string;
+	endTime: string;
+	scheduled?: string;
+	recurrence?: string;
+	recurrence_anchor?: "scheduled" | "completion";
+	filterTag?: string;
+	topTasksCount?: number;
+	includeOverdue?: boolean;
+	color?: string;
+	description?: string;
+	dateCreated: string;
+	dateModified: string;
 }
 
 export interface NoteFrontmatter {
