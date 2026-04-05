@@ -23,3 +23,13 @@ Example:
 ```
 
 -->
+
+## Added
+
+- (#1768) Added **Focus Blocks** to calendar views so you can reserve one-off or recurring time for a tagged set of tasks.
+  - Focus Blocks include dedicated create/edit modals, calendar cards, recurrence support, and drag/resize behavior in the calendar.
+  - Each block can filter tasks by tag and surface the top **N** active tasks for that session, while still showing overdue work.
+  - Primary task previews prioritize higher-priority tasks, respect Manual Order (`tasknotes_manual_order`) within the same priority group, and keep blocked tasks out of the main ranked list while still surfacing overdue blocked tasks in the overdue section.
+  - Creating a task from a Focus Block prefills the matching tag and refreshes the block preview after the task is saved.
+  - Thanks to @loiveli for the feature request and contribution.
+
