@@ -55,6 +55,64 @@ export class TimeblockCreationModal extends Modal {
 		this.translate = plugin.i18n.translate.bind(plugin.i18n);
 	}
 
+	private setupTimeInput(input: HTMLInputElement): void {
+		input.type = "hidden";
+		input.addClass("timeblock-time-input");
+	}
+
+	private createTimeField(
+		container: HTMLElement,
+		label: string,
+		value: string,
+		onChange: () => void
+	): HTMLInputElement {
+		const normalizedValue = /^\d{2}:\d{2}$/.test(value) ? value : "09:00";
+		const [initialHour, initialMinute] = normalizedValue.split(":");
+
+		const field = container.createDiv({ cls: "timeblock-time-field" });
+		field.createEl("label", { text: label, cls: "timeblock-time-label" });
+
+		const input = field.createEl("input");
+		this.setupTimeInput(input);
+		input.value = normalizedValue;
+
+		const picker = field.createDiv({ cls: "timeblock-time-picker" });
+		const hourSelect = picker.createEl("select", {
+			cls: "timeblock-time-segment timeblock-time-segment--hour",
+		});
+		hourSelect.setAttribute("aria-label", `${label} hours`);
+
+		for (let hour = 0; hour < 24; hour++) {
+			const optionValue = String(hour).padStart(2, "0");
+			hourSelect.createEl("option", { value: optionValue, text: optionValue });
+		}
+
+		picker.createSpan({ cls: "timeblock-time-divider", text: ":" });
+
+		const minuteSelect = picker.createEl("select", {
+			cls: "timeblock-time-segment timeblock-time-segment--minute",
+		});
+		minuteSelect.setAttribute("aria-label", `${label} minutes`);
+
+		for (let minute = 0; minute < 60; minute++) {
+			const optionValue = String(minute).padStart(2, "0");
+			minuteSelect.createEl("option", { value: optionValue, text: optionValue });
+		}
+
+		hourSelect.value = initialHour;
+		minuteSelect.value = initialMinute;
+
+		const syncValue = () => {
+			input.value = `${hourSelect.value}:${minuteSelect.value}`;
+			onChange();
+		};
+
+		hourSelect.addEventListener("change", syncValue);
+		minuteSelect.addEventListener("change", syncValue);
+
+		return input;
+	}
+
 	onOpen() {
 		const { contentEl } = this;
 		contentEl.empty();
@@ -94,33 +152,31 @@ export class TimeblockCreationModal extends Modal {
 		// Time range
 		const timeContainer = contentEl.createDiv({ cls: "timeblock-time-container" });
 
-		new Setting(timeContainer)
-			.setName(this.translate("modals.timeblockCreation.startTimeLabel"))
-			.setDesc(this.translate("modals.timeblockCreation.startTimeDesc"))
-			.addText((text) => {
-				this.startTimeInput = text.inputEl;
-				text.setPlaceholder(this.translate("modals.timeblockCreation.startTimePlaceholder"))
-					.setValue(this.options.startTime || "")
-					.onChange(() => this.validateForm());
-				this.startTimeInput.type = "time";
-			});
+		this.startTimeInput = this.createTimeField(
+			timeContainer,
+			this.translate("modals.timeblockCreation.startTimeLabel"),
+			this.options.startTime || "09:00",
+			() => this.validateForm()
+		);
 
-		new Setting(timeContainer)
-			.setName(this.translate("modals.timeblockCreation.endTimeLabel"))
-			.setDesc(this.translate("modals.timeblockCreation.endTimeDesc"))
-			.addText((text) => {
-				this.endTimeInput = text.inputEl;
-				text.setPlaceholder(this.translate("modals.timeblockCreation.endTimePlaceholder"))
-					.setValue(this.options.endTime || "")
-					.onChange(() => {
-						// Convert 00:00 to 23:59 for end time
-						if (this.endTimeInput.value === "00:00") {
-							this.endTimeInput.value = "23:59";
-						}
-						this.validateForm();
-					});
-				this.endTimeInput.type = "time";
-			});
+		timeContainer.createDiv({ cls: "timeblock-time-separator", text: "→" });
+
+		this.endTimeInput = this.createTimeField(
+			timeContainer,
+			this.translate("modals.timeblockCreation.endTimeLabel"),
+			this.options.endTime || "10:00",
+			() => {
+				if (this.endTimeInput.value === "00:00") {
+					this.endTimeInput.value = "23:59";
+				}
+				this.validateForm();
+			}
+		);
+
+		contentEl.createDiv({
+			cls: "timeblock-time-note",
+			text: "Type a time directly or use the picker — minute-level times are supported.",
+		});
 
 		// Description (optional)
 		new Setting(contentEl)
