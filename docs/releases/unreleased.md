@@ -23,3 +23,10 @@ Example:
 ```
 
 -->
+
+## Fixed
+
+- (#1767) Fixed the Timeblock creation UI so the start and end time controls are aligned and easier to use.
+  - Replaces the uneven layout with a cleaner segmented hour/minute picker that supports minute-level scheduling more clearly.
+  - Improves spacing and small-screen behavior in the modal without changing the underlying timeblock workflow.
+  - Thanks to @loiveli for reporting and contributing the fix.
